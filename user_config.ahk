@@ -30,6 +30,7 @@
 #7::switchDesktopByNumber(7)
 #8::switchDesktopByNumber(8)
 #9::switchDesktopByNumber(9)
+#0::switchDesktopByNumber(10)
 
 #Numpad1::switchDesktopByNumber(1)
 #Numpad2::switchDesktopByNumber(2)
@@ -40,6 +41,7 @@
 #Numpad7::switchDesktopByNumber(7)
 #Numpad8::switchDesktopByNumber(8)
 #Numpad9::switchDesktopByNumber(9)
+#Numpad0::switchDesktopByNumber(10)
 
 ;CapsLock & n::switchDesktopToRight()
 ;CapsLock & p::switchDesktopToLeft()
