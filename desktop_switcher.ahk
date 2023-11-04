@@ -8,7 +8,6 @@ SendMode Input  ; Recommended for new scripts due to its superior speed and reli
 DesktopCount := 2        ; Windows starts with 2 desktops at boot
 CurrentDesktop := 1      ; Desktop count is 1-indexed (Microsoft numbers them this way)
 LastOpenedDesktop := 1
-
 ; DLL
 hVirtualDesktopAccessor := DllCall("LoadLibrary", "Str", A_ScriptDir . "\VirtualDesktopAccessor.dll", "Ptr")
 global IsWindowOnDesktopNumberProc := DllCall("GetProcAddress", Ptr, hVirtualDesktopAccessor, AStr, "IsWindowOnDesktopNumber", "Ptr")
@@ -97,23 +96,19 @@ _switchDesktopToTarget(targetDesktop)
     }
 
     LastOpenedDesktop := CurrentDesktop
-
-    ; Fixes the issue of active windows in intermediate desktops capturing the switch shortcut and therefore delaying or stopping the switching sequence. This also fixes the flashing window button after switching in the taskbar. More info: https://github.com/pmb6tz/windows-desktop-switcher/pull/19
-    WinActivate, ahk_class Shell_TrayWnd
-
-    ; Go right until we reach the desktop we want
-    while(CurrentDesktop < targetDesktop) {
-        Send {LWin down}{LCtrl down}{Right down}{LWin up}{LCtrl up}{Right up}
-        CurrentDesktop++
-        OutputDebug, [right] target: %targetDesktop% current: %CurrentDesktop%
+    windowCount := getVisibleWindowCount()
+    SysGet, Mon1, Monitor, 1
+    Send, #{Tab}
+    Sleep, 500
+    If (windowCount > 0) {
+        Send, {Tab}
     }
-
-    ; Go left until we reach the desktop we want
-    while(CurrentDesktop > targetDesktop) {
-        Send {LWin down}{LCtrl down}{Left down}{Lwin up}{LCtrl up}{Left up}
-        CurrentDesktop--
-        OutputDebug, [left] target: %targetDesktop% current: %CurrentDesktop%
+    Loop % targetDesktop - 1
+    {
+        Send, {Right}
     }
+    Send, {Enter}
+    CurrentDesktop := targetDesktop
 
     ; Makes the WinActivate fix less intrusive
     Sleep, 50
@@ -214,4 +209,28 @@ deleteVirtualDesktop()
     DesktopCount--
     CurrentDesktop--
     OutputDebug, [delete] desktops: %DesktopCount% current: %CurrentDesktop%
+}
+
+getVisibleWindowCount()
+{
+    WinGet windows, List
+    result := 0
+    Loop, %windows%
+    {
+        id := windows%A_Index%
+        WinGetPos, X, Y, Height, Width , ahk_id %id%
+        WinGetTitle title, ahk_id %id%
+        WinGet, style, style, ahk_id %id%
+        WinGet ProcsName, ProcessName, ahk_id %id%
+        if ((style & 0xC00000) <> 0 && title <> "" && endsWith(ProcsName, ".exe") && Height >= 0 && Width >= 0 && X >= 0 && Y >=0) {
+            result := result + 1
+        }
+    }
+
+    return result
+}
+
+endsWith(Haystack, Needle)
+{
+    return InStr(Haystack, Needle, 1) = StrLen(Haystack) - StrLen(Needle) + 1
 }
