@@ -86,7 +86,6 @@ getSessionId()
 
 _switchDesktopToTarget(targetDesktop)
 {
-    ; Globals variables should have been updated via updateGlobalVariables() prior to entering this function
     global CurrentDesktop, DesktopCount, LastOpenedDesktop
 
     ; Don't attempt to switch to an invalid desktop
@@ -95,6 +94,46 @@ _switchDesktopToTarget(targetDesktop)
         return
     }
 
+    if (Abs(CurrentDesktop - targetDesktop) = 1)
+    {
+        _switchDesktopToTargetViaCtrlWinDirection(targetDesktop)
+    }
+    else
+    {
+        _switchDesktopToTargetViaTaskview(targetDesktop)
+    }
+
+    ; Makes the WinActivate fix less intrusive
+    Sleep, 250
+    focusTheForemostWindow(targetDesktop)
+}
+
+_switchDesktopToTargetViaCtrlWinDirection(targetDesktop)
+{
+    global CurrentDesktop, DesktopCount, LastOpenedDesktop
+    LastOpenedDesktop := CurrentDesktop
+
+    ; Fixes the issue of active windows in intermediate desktops capturing the switch shortcut and therefore delaying or stopping the switching sequence. This also fixes the flashing window button after switching in the taskbar. More info: https://github.com/pmb6tz/windows-desktop-switcher/pull/19
+    WinActivate, ahk_class Shell_TrayWnd
+
+    ; Go right until we reach the desktop we want
+    while(CurrentDesktop < targetDesktop) {
+        Send {LWin down}{LCtrl down}{Right down}{LWin up}{LCtrl up}{Right up}
+        CurrentDesktop++
+        OutputDebug, [right] target: %targetDesktop% current: %CurrentDesktop%
+    }
+
+    ; Go left until we reach the desktop we want
+    while(CurrentDesktop > targetDesktop) {
+        Send {LWin down}{LCtrl down}{Left down}{Lwin up}{LCtrl up}{Left up}
+        CurrentDesktop--
+        OutputDebug, [left] target: %targetDesktop% current: %CurrentDesktop%
+    }
+}
+
+_switchDesktopToTargetViaTaskview(targetDesktop)
+{
+    global CurrentDesktop, DesktopCount, LastOpenedDesktop
     LastOpenedDesktop := CurrentDesktop
     windowCount := getVisibleWindowCount()
     SysGet, Mon1, Monitor, 1
@@ -109,10 +148,6 @@ _switchDesktopToTarget(targetDesktop)
     }
     Send, {Enter}
     CurrentDesktop := targetDesktop
-
-    ; Makes the WinActivate fix less intrusive
-    Sleep, 50
-    focusTheForemostWindow(targetDesktop)
 }
 
 updateGlobalVariables() 
@@ -152,14 +187,7 @@ switchDesktopToLeft()
 
 focusTheForemostWindow(targetDesktop) {
     foremostWindowId := getForemostWindowIdOnDesktop(targetDesktop)
-    if isWindowNonMinimized(foremostWindowId) {
-        WinActivate, ahk_id %foremostWindowId%
-    }
-}
-
-isWindowNonMinimized(windowId) {
-    WinGet MMX, MinMax, ahk_id %windowId%
-    return MMX != -1
+    WinActivate, ahk_id %foremostWindowId%
 }
 
 getForemostWindowIdOnDesktop(n)
@@ -170,9 +198,8 @@ getForemostWindowIdOnDesktop(n)
     WinGet winIDList, list
     Loop % winIDList {
         windowID := % winIDList%A_Index%
-        windowIsOnDesktop := DllCall(IsWindowOnDesktopNumberProc, UInt, windowID, UInt, n)
         ; Select the first (and foremost) window which is in the specified desktop.
-        if (windowIsOnDesktop == 1) {
+        if (isWindowVisible(windowID)) {
             return windowID
         }
     }
@@ -218,16 +245,23 @@ getVisibleWindowCount()
     Loop, %windows%
     {
         id := windows%A_Index%
-        WinGetPos, X, Y, Height, Width , ahk_id %id%
-        WinGetTitle title, ahk_id %id%
-        WinGet, style, style, ahk_id %id%
-        WinGet ProcsName, ProcessName, ahk_id %id%
-        if ((style & 0xC00000) <> 0 && title <> "" && endsWith(ProcsName, ".exe") && Height >= 0 && Width >= 0 && X >= 0 && Y >=0) {
+        if (isWindowVisible(id)) {
             result := result + 1
         }
     }
 
     return result
+}
+
+isWindowVisible(id)
+{
+    WinGetPos, X, Y, Height, Width , ahk_id %id%
+    WinGetTitle title, ahk_id %id%
+    WinGet, style, style, ahk_id %id%
+    WinGet ProcsName, ProcessName, ahk_id %id%
+    ; Is Maximized?
+    WinGet MMX, MinMax, ahk_id %windowId%
+    return (style & 0xC00000) <> 0 && title <> "" && endsWith(ProcsName, ".exe") && Height >= 0 && Width >= 0 && X >= 0 && Y >=0 && MMX <> -1
 }
 
 endsWith(Haystack, Needle)
