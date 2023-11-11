@@ -18,6 +18,7 @@ SetKeyDelay, 75
 mapDesktopsFromRegistry()
 OutputDebug, [loading] desktops: %DesktopCount% current: %CurrentDesktop%
 
+UseTaskView = True ; default value. Can be overriden in user_config.ahk
 #Include %A_ScriptDir%\windows-desktop-switcher\user_config.ahk
 return
 
@@ -94,13 +95,13 @@ _switchDesktopToTarget(targetDesktop)
         return
     }
 
-    if (Abs(CurrentDesktop - targetDesktop) = 1)
+    if (UseTaskView and Abs(CurrentDesktop - targetDesktop) > 1)
     {
-        _switchDesktopToTargetViaCtrlWinDirection(targetDesktop)
+        _switchDesktopToTargetViaTaskview(targetDesktop)
     }
     else
     {
-        _switchDesktopToTargetViaTaskview(targetDesktop)
+        _switchDesktopToTargetViaCtrlWinDirection(targetDesktop)
     }
 
     ; Makes the WinActivate fix less intrusive
@@ -136,9 +137,8 @@ _switchDesktopToTargetViaTaskview(targetDesktop)
     global CurrentDesktop, DesktopCount, LastOpenedDesktop
     LastOpenedDesktop := CurrentDesktop
     windowCount := getVisibleWindowCount()
-    SysGet, Mon1, Monitor, 1
     Send, #{Tab}
-    Sleep, 500
+    Sleep, 500  
     If (windowCount > 0) {
         Send, {Tab}
     }

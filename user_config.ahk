@@ -1,3 +1,7 @@
+; NOTE:
+;  For this to work better, disable animations.
+;  Go to Accessibility Settings, Visual Effects, and turn off Animation effects.
+
 ; ====================
 ; === INSTRUCTIONS ===
 ; ====================
@@ -21,13 +25,15 @@
 ; === END OF INSTRUCTIONS ===
 ; ===========================
 
+UseTaskView := False
+
 #1::switchDesktopByNumber(1)
 #2::switchDesktopByNumber(2)
 #3::switchDesktopByNumber(3)
 #4::switchDesktopByNumber(4)
 #5::switchDesktopByNumber(5)
 #6::switchDesktopByNumber(6)
-#7::switchDesktopByNumber(7)
+#7::switchDesktopByNumber(7)    
 #8::switchDesktopByNumber(8)
 #9::switchDesktopByNumber(9)
 #0::switchDesktopByNumber(10)
